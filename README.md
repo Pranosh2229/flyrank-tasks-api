@@ -39,6 +39,6 @@ Before: `GET /tasks/2` → `{"id":2,"title":"Write README","done":false}`
 Ran that `UPDATE` directly against the database file (same thing DB Browser does).
 After, same running server, no restart: `GET /tasks/2` → `{"id":2,"title":"Write README","done":true}` — the API reflected the change instantly, because it and the database viewer read the exact same file.
 
-**Still needed from me:** open `tasks.db` in [DB Browser for SQLite](https://sqlitebrowser.org/), run the query above (or any of the Stage 4 queries) there instead, and drop a screenshot here — the assignment specifically wants the GUI viewer, not just this log.
+Also confirmed in [DB Browser for SQLite](https://sqlitebrowser.org/) directly — `SELECT * FROM tasks WHERE done = 1;` against the freshly seeded database correctly returns 0 rows, since none of the three seed tasks start out done:
 
-`![DB Browser screenshot](TODO-add-screenshot.png)`
+![DB Browser screenshot](db-browser.png)
