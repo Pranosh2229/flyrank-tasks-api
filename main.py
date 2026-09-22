@@ -4,7 +4,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from db import init_db
+
 app = FastAPI(title="Tasks API")
+
+# SQLite database is created and seeded on startup, but the endpoints below
+# still read/write the in-memory list for now — Stage 1 switches them over.
+init_db()
 
 tasks: list[dict] = [
     {"id": 1, "title": "Buy milk", "done": False},
