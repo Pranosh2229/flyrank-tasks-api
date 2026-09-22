@@ -19,15 +19,13 @@ uvicorn main:app --reload
 | PUT    | `/tasks/{id}` | Update a task, `404`/`400` as above         |
 | DELETE | `/tasks/{id}` | Delete a task, `404` if it doesn't exist    |
 
-Data is stored in `tasks.db`, a SQLite database file created automatically next to `main.py` the first time the app runs — it survives server restarts.
+## Database
 
-## Why SQLite
+Data lives in `tasks.db`, a SQLite database file created automatically next to `main.py` the first time the app runs. Restarting the server no longer wipes your tasks.
 
-No separate database server to install or run — the whole database is one file. That's exactly right for a small task API: zero setup, and the file itself is the backup. If this grew into a multi-service production app, the same SQL would move to Postgres with minimal code change (that separation between API and storage is the point of this assignment).
+**Why SQLite:** no separate database server to install or run — the whole database is one file. That's exactly right for a small task API: zero setup, and the file itself is the backup. If this grew into a multi-service production app, the same SQL would move to Postgres with minimal code change (that separation between API and storage is the point of this assignment).
 
-## Where the database file lives
-
-`tasks.db`, next to `main.py`. It's git-ignored, so a fresh clone starts with no database file — running the app once creates it and seeds three example tasks.
+**Where the file lives:** `tasks.db`, next to `main.py`. It's git-ignored, so a fresh clone starts with no database file — running `uvicorn main:app --reload` once creates it and seeds three example tasks (`Buy milk`, `Write README`, `Push to GitHub`). Restarting again does not duplicate them; the seed only runs when the table is empty.
 
 ## SQL explored by hand (Stage 4)
 
