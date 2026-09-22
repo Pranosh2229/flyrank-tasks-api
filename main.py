@@ -4,14 +4,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from db import init_db
+from db import get_connection, init_db
 
 app = FastAPI(title="Tasks API")
 
-# SQLite database is created and seeded on startup, but the endpoints below
-# still read/write the in-memory list for now — Stage 1 switches them over.
 init_db()
 
+# POST/PUT/DELETE still use this in-memory list — Stages 2 and 3 switch them
+# over to SQL. GET below already reads from tasks.db (Stage 1).
 tasks: list[dict] = [
     {"id": 1, "title": "Buy milk", "done": False},
     {"id": 2, "title": "Write README", "done": False},
@@ -30,6 +30,10 @@ async def http_exception_handler(request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
 
 
+def row_to_task(row) -> dict:
+    return {"id": row["id"], "title": row["title"], "done": bool(row["done"])}
+
+
 def find_task(task_id: int) -> dict:
     task = next((t for t in tasks if t["id"] == task_id), None)
     if task is None:
@@ -39,12 +43,20 @@ def find_task(task_id: int) -> dict:
 
 @app.get("/tasks")
 def list_tasks():
-    return tasks
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM tasks").fetchall()
+    conn.close()
+    return [row_to_task(r) for r in rows]
 
 
 @app.get("/tasks/{task_id}")
 def get_task(task_id: int):
-    return find_task(task_id)
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+    conn.close()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return row_to_task(row)
 
 
 @app.post("/tasks", status_code=201)
