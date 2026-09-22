@@ -1,6 +1,10 @@
 import os
 
+from dotenv import load_dotenv
+
 from repository import TaskRepository
+
+load_dotenv()
 
 
 def get_repository() -> TaskRepository:
