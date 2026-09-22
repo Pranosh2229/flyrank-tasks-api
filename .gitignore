@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+tasks.db
+ai-version/tasks.db
