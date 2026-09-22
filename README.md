@@ -19,4 +19,28 @@ uvicorn main:app --reload
 | PUT    | `/tasks/{id}` | Update a task, `404`/`400` as above         |
 | DELETE | `/tasks/{id}` | Delete a task, `404` if it doesn't exist    |
 
-Storage is currently in-memory — restarting the server resets the task list back to the three seeded examples. See Assignment A2 for the SQLite-backed version.
+Data is stored in `tasks.db`, a SQLite database file created automatically next to `main.py` the first time the app runs — it survives server restarts.
+
+## Why SQLite
+
+No separate database server to install or run — the whole database is one file. That's exactly right for a small task API: zero setup, and the file itself is the backup. If this grew into a multi-service production app, the same SQL would move to Postgres with minimal code change (that separation between API and storage is the point of this assignment).
+
+## Where the database file lives
+
+`tasks.db`, next to `main.py`. It's git-ignored, so a fresh clone starts with no database file — running the app once creates it and seeds three example tasks.
+
+## SQL explored by hand (Stage 4)
+
+Ran directly against `tasks.db` with the server live, no restart, and confirmed through the running API:
+
+```sql
+UPDATE tasks SET done = 1 WHERE id = 2;
+```
+
+Before: `GET /tasks/2` → `{"id":2,"title":"Write README","done":false}`
+Ran that `UPDATE` directly against the database file (same thing DB Browser does).
+After, same running server, no restart: `GET /tasks/2` → `{"id":2,"title":"Write README","done":true}` — the API reflected the change instantly, because it and the database viewer read the exact same file.
+
+**Still needed from me:** open `tasks.db` in [DB Browser for SQLite](https://sqlitebrowser.org/), run the query above (or any of the Stage 4 queries) there instead, and drop a screenshot here — the assignment specifically wants the GUI viewer, not just this log.
+
+`![DB Browser screenshot](TODO-add-screenshot.png)`
