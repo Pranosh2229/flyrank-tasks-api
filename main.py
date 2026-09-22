@@ -10,8 +10,8 @@ app = FastAPI(title="Tasks API")
 
 init_db()
 
-# POST/PUT/DELETE still use this in-memory list — Stages 2 and 3 switch them
-# over to SQL. GET below already reads from tasks.db (Stage 1).
+# PUT/DELETE still use this in-memory list — Stage 3 switches them over to
+# SQL. GET (Stage 1) and POST (Stage 2) already use tasks.db.
 tasks: list[dict] = [
     {"id": 1, "title": "Buy milk", "done": False},
     {"id": 2, "title": "Write README", "done": False},
@@ -63,11 +63,17 @@ def get_task(task_id: int):
 def create_task(payload: TaskIn):
     if not payload.title or not payload.title.strip():
         raise HTTPException(status_code=400, detail="title is required")
-    global next_id
-    task = {"id": next_id, "title": payload.title, "done": bool(payload.done)}
-    tasks.append(task)
-    next_id += 1
-    return task
+    conn = get_connection()
+    cur = conn.execute(
+        "INSERT INTO tasks (title, done) VALUES (?, ?)",
+        (payload.title, int(bool(payload.done))),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT * FROM tasks WHERE id = ?", (cur.lastrowid,)
+    ).fetchone()
+    conn.close()
+    return row_to_task(row)
 
 
 @app.put("/tasks/{task_id}")
