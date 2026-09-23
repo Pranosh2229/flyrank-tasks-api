@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from supabase_auth.errors import AuthApiError
 
 from get_repository import get_repository
 from supabase_client import supabase
@@ -25,9 +26,43 @@ class TaskIn(BaseModel):
     done: Optional[bool] = False
 
 
+class AuthIn(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = None
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
+
+
+@app.post("/auth/signup", status_code=201)
+def signup(payload: AuthIn):
+    if not payload.email or not payload.password:
+        raise HTTPException(status_code=400, detail="email and password are required")
+    try:
+        result = supabase.auth.sign_up(
+            {"email": payload.email, "password": payload.password}
+        )
+    except AuthApiError as exc:
+        raise HTTPException(status_code=400, detail=exc.message)
+    return result.user.model_dump(mode="json")
+
+
+@app.post("/auth/login")
+def login(payload: AuthIn):
+    if not payload.email or not payload.password:
+        raise HTTPException(status_code=400, detail="email and password are required")
+    try:
+        result = supabase.auth.sign_in_with_password(
+            {"email": payload.email, "password": payload.password}
+        )
+    except AuthApiError:
+        raise HTTPException(status_code=401, detail="Invalid login credentials")
+    return {
+        "access_token": result.session.access_token,
+        "refresh_token": result.session.refresh_token,
+    }
 
 
 @app.get("/tasks")
