@@ -1,11 +1,28 @@
 # Tasks API
 
-A tiny CRUD API for managing a to-do list. FlyRank Backend Engineering Internship — Assignment A1 (in-memory), Assignment A2 (SQLite), Assignment A3/BE-04 (containerized, Postgres).
+A tiny CRUD API for managing a to-do list. FlyRank Backend Engineering Internship — Assignment A1 (in-memory), Assignment A2 (SQLite), Assignment A3/BE-04 (containerized, Postgres), BE-03/A4 (Supabase Auth — sign up, log in, log out, protected routes).
+
+## Setup — environment variables
+
+```bash
+cp .env.example .env
+```
+
+Then fill in `.env` with your own values (never commit this file — it's git-ignored):
+
+| Variable | Where to get it |
+|---|---|
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Pick anything — used only by the local Docker Postgres container |
+| `DATABASE_URL` | Set automatically for Docker (`db` is the compose service name); leave unset to fall back to SQLite locally |
+| `SUPABASE_URL` | Your Supabase project → **Project Settings → API Keys** → Project URL |
+| `SUPABASE_KEY` | Same page → **Publishable key** (never the **Secret key** — that bypasses all security) |
+| `PORT` | `8000` for local FastAPI dev |
+
+One-time Supabase dashboard setting for local testing: **Authentication → Sign In / Providers → Email → turn off "Confirm email"**, so a fresh signup can log in immediately (leave this on in a real production project).
 
 ## Run it — Docker (Postgres, the real stack)
 
 ```bash
-cp .env.example .env
 docker compose up -d --build
 curl http://localhost:8000/tasks
 ```
@@ -23,13 +40,31 @@ With no `DATABASE_URL` set, the app falls back to the SQLite repository from Ass
 
 ## Endpoints
 
-| Method | Path          | Behaviour                                  |
-|--------|---------------|---------------------------------------------|
-| GET    | `/tasks`      | List all tasks                              |
-| GET    | `/tasks/{id}` | Get one task, `404` if it doesn't exist     |
-| POST   | `/tasks`      | Create a task, `400` if `title` is missing  |
-| PUT    | `/tasks/{id}` | Update a task, `404`/`400` as above         |
-| DELETE | `/tasks/{id}` | Delete a task, `404` if it doesn't exist    |
+| Method | Path | Auth required? | Behaviour |
+|--------|------|:---:|---|
+| POST | `/auth/signup` | No | Create a Supabase user, `201` on success, `400` if `email`/`password` missing |
+| POST | `/auth/login` | No | Log in via Supabase, `200` + `access_token`/`refresh_token`, `401` on bad credentials |
+| POST | `/auth/logout` | **Yes** | Revoke the caller's Supabase session, `204` on success |
+| GET | `/public/info` | No | `200`, no auth needed |
+| GET | `/protected/profile` | **Yes** | `200` with `id`/`email`/`created_at`, `401` if the bearer token is missing/invalid/expired |
+| GET | `/protected/dashboard` | **Yes** | Same guard as `/protected/profile`, proves the auth middleware is reusable |
+| GET | `/tasks` | No | List all tasks |
+| GET | `/tasks/{id}` | No | Get one task, `404` if it doesn't exist |
+| POST | `/tasks` | No | Create a task, `400` if `title` is missing |
+| PUT | `/tasks/{id}` | No | Update a task, `404`/`400` as above |
+| DELETE | `/tasks/{id}` | No | Delete a task, `404` if it doesn't exist |
+
+Protected routes expect `Authorization: Bearer <access_token>` from `/auth/login`.
+
+## Authentication (BE-03)
+
+Supabase Auth is the Identity Provider — this app never hashes a password or signs a token itself; it only sends credentials to Supabase and verifies the tokens Supabase hands back (`supabase_client.py`).
+
+- **`get_current_user`** (`main.py`) is the single reusable FastAPI dependency — every protected route just adds `Depends(get_current_user)`. It's registered against FastAPI's `HTTPBearer` security scheme, which is what makes the "Authorize" padlock appear on the right routes in Swagger and gives FastAPI's own `Bearer <token>` parsing instead of hand-rolled header slicing.
+- **Logout** calls Supabase Auth's `/auth/v1/logout` REST endpoint directly with the caller's own token, rather than the SDK's `sign_out()` — that method acts on the *shared client's own* cached session, and this API is stateless (one client instance, many users), so it would silently no-op. Hitting the REST endpoint with the caller's token revokes that specific session, still using only the publishable key.
+- **Swagger UI** at `/docs` shows a lock icon on every protected route; click **Authorize**, paste an `access_token` from `/auth/login`, and "Try it out" works directly from the browser:
+
+![Swagger UI with bearer auth](swagger-auth-screenshot.png)
 
 ## Architecture (BE-04)
 
