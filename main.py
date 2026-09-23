@@ -1,8 +1,9 @@
 from typing import Optional
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from supabase_auth.errors import AuthApiError
 
@@ -66,21 +67,23 @@ def login(payload: AuthIn):
     }
 
 
-def _extract_bearer_token(authorization: Optional[str]) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token required")
-    token = authorization[len("Bearer ") :].strip()
-    if not token:
-        raise HTTPException(status_code=401, detail="Access token required")
-    return token
+# Stage 5: registering this as a security scheme (rather than reading the
+# Authorization header manually) is what makes Swagger's "Authorize"
+# padlock appear on every route that depends on it, and lets FastAPI parse
+# the "Bearer <token>" prefix itself instead of hand-rolled string slicing.
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_current_user(authorization: Optional[str] = Header(None)):
-    """Reusable auth guard (FastAPI dependency). Extracts and verifies the
-    bearer token with Supabase; every protected route just depends on this
-    instead of repeating the check. Returns the user plus the raw token,
-    since /auth/logout needs the token itself, not just the user it names."""
-    token = _extract_bearer_token(authorization)
+def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+):
+    """Reusable auth guard (FastAPI dependency). Verifies the bearer token
+    with Supabase; every protected route just depends on this instead of
+    repeating the check. Returns the user plus the raw token, since
+    /auth/logout needs the token itself, not just the user it names."""
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Access token required")
+    token = credentials.credentials
     try:
         result = supabase.auth.get_user(token)
     except AuthApiError:
