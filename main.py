@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from supabase_auth.errors import AuthApiError
@@ -63,6 +63,27 @@ def login(payload: AuthIn):
         "access_token": result.session.access_token,
         "refresh_token": result.session.refresh_token,
     }
+
+
+def _extract_bearer_token(authorization: Optional[str]) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Access token required")
+    token = authorization[len("Bearer ") :].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Access token required")
+    return token
+
+
+@app.get("/public/info")
+def public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+
+@app.get("/protected/profile")
+def protected_profile(authorization: Optional[str] = Header(None)):
+    # Stage 2: only checks a token was presented. Stage 3 verifies it with Supabase.
+    _extract_bearer_token(authorization)
+    return {"message": "token received, not yet verified"}
 
 
 @app.get("/tasks")
