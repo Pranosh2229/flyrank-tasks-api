@@ -5,10 +5,19 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from get_repository import get_repository
+from supabase_client import supabase
 
 app = FastAPI(title="Tasks API")
 
 repo = get_repository()
+
+
+@app.on_event("startup")
+async def startup_event():
+    # supabase_client already built the client at import time (Stage 0);
+    # this just confirms it's the object this process is holding.
+    assert supabase is not None
+    print("Server running and connected to Supabase")
 
 
 class TaskIn(BaseModel):
