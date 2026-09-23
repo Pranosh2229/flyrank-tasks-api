@@ -1,12 +1,13 @@
 from typing import Optional
 
-from fastapi import FastAPI, Header, HTTPException
+import httpx
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from supabase_auth.errors import AuthApiError
 
 from get_repository import get_repository
-from supabase_client import supabase
+from supabase_client import supabase, SUPABASE_KEY, SUPABASE_URL
 
 app = FastAPI(title="Tasks API")
 
@@ -74,13 +75,11 @@ def _extract_bearer_token(authorization: Optional[str]) -> str:
     return token
 
 
-@app.get("/public/info")
-def public_info():
-    return {"message": "Welcome stranger! This info is public."}
-
-
-@app.get("/protected/profile")
-def protected_profile(authorization: Optional[str] = Header(None)):
+def get_current_user(authorization: Optional[str] = Header(None)):
+    """Reusable auth guard (FastAPI dependency). Extracts and verifies the
+    bearer token with Supabase; every protected route just depends on this
+    instead of repeating the check. Returns the user plus the raw token,
+    since /auth/logout needs the token itself, not just the user it names."""
     token = _extract_bearer_token(authorization)
     try:
         result = supabase.auth.get_user(token)
@@ -88,7 +87,37 @@ def protected_profile(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     if result is None or result.user is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return result.user.model_dump(mode="json", include={"id", "email", "created_at"})
+    return {"user": result.user, "token": token}
+
+
+@app.get("/public/info")
+def public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+
+@app.get("/protected/profile")
+def protected_profile(auth=Depends(get_current_user)):
+    return auth["user"].model_dump(mode="json", include={"id", "email", "created_at"})
+
+
+@app.get("/protected/dashboard")
+def protected_dashboard(auth=Depends(get_current_user)):
+    return {"message": f"welcome to your dashboard, {auth['user'].email}"}
+
+
+@app.post("/auth/logout", status_code=204)
+def logout(auth=Depends(get_current_user)):
+    # supabase.auth.sign_out() acts on the shared client's own cached
+    # session — this API is stateless and never populates one, so that
+    # call would silently no-op. Hitting Supabase Auth's REST endpoint
+    # directly with the caller's own token actually revokes that session,
+    # using only the anon key.
+    httpx.post(
+        f"{SUPABASE_URL}/auth/v1/logout",
+        params={"scope": "global"},
+        headers={"Authorization": f"Bearer {auth['token']}", "apikey": SUPABASE_KEY},
+    )
+    return None
 
 
 @app.get("/tasks")
