@@ -81,9 +81,14 @@ def public_info():
 
 @app.get("/protected/profile")
 def protected_profile(authorization: Optional[str] = Header(None)):
-    # Stage 2: only checks a token was presented. Stage 3 verifies it with Supabase.
-    _extract_bearer_token(authorization)
-    return {"message": "token received, not yet verified"}
+    token = _extract_bearer_token(authorization)
+    try:
+        result = supabase.auth.get_user(token)
+    except AuthApiError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    if result is None or result.user is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return result.user.model_dump(mode="json", include={"id", "email", "created_at"})
 
 
 @app.get("/tasks")
