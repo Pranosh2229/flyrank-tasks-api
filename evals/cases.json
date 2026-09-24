@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "note": "clear-cut genre match",
+    "input": {"title": "Set Me Free", "category": "Young Adult", "rating": 5, "price_gbp": 17.46, "availability_text": "In stock (19 available)"},
+    "expected_audience": "young_adult"
+  },
+  {
+    "id": 2,
+    "note": "clear-cut genre match",
+    "input": {"title": "The Requiem Red", "category": "Young Adult", "rating": 1, "price_gbp": 22.65, "availability_text": "In stock (19 available)"},
+    "expected_audience": "young_adult"
+  },
+  {
+    "id": 3,
+    "note": "popular nonfiction, not a textbook -- general adult, not academic",
+    "input": {"title": "Sapiens: A Brief History of Humankind", "category": "History", "rating": 5, "price_gbp": 54.23, "availability_text": "In stock (20 available)"},
+    "expected_audience": "general_adult"
+  },
+  {
+    "id": 4,
+    "note": "career-advice business book",
+    "input": {"title": "The Dirty Little Secrets of Getting Your Dream Job", "category": "Business", "rating": 4, "price_gbp": 33.34, "availability_text": "In stock (19 available)"},
+    "expected_audience": "general_adult"
+  },
+  {
+    "id": 5,
+    "note": "adult historical fiction novel",
+    "input": {"title": "Tipping the Velvet", "category": "Historical Fiction", "rating": 1, "price_gbp": 53.74, "availability_text": "In stock (20 available)"},
+    "expected_audience": "general_adult"
+  },
+  {
+    "id": 6,
+    "note": "poetry collection, adult-leaning but genuinely debatable",
+    "input": {"title": "The Black Maria", "category": "Poetry", "rating": 1, "price_gbp": 52.15, "availability_text": "In stock (19 available)"},
+    "expected_audience": "general_adult"
+  },
+  {
+    "id": 7,
+    "note": "AMBIGUOUS CASE -- graphic novel, could reasonably be read as young_adult or general_adult; scored correct either way, this case just proves the model reasons about it rather than defaulting",
+    "input": {"title": "Scott Pilgrim's Precious Little Life (Scott Pilgrim #1)", "category": "Sequential Art", "rating": 5, "price_gbp": 52.29, "availability_text": "In stock (19 available)"},
+    "expected_audience": ["young_adult", "general_adult"]
+  },
+  {
+    "id": 8,
+    "note": "WHEN-UNSURE CASE -- deliberately thin/generic title and a catch-all genre; correct behaviour is general_adult with confidence < 0.5 and needs_review in quality_flags, not a confident specific guess",
+    "input": {"title": "Z2", "category": "Default", "rating": 2, "price_gbp": 12.5, "availability_text": "In stock (1 available)"},
+    "expected_audience": "general_adult",
+    "expected_low_confidence": true,
+    "expected_flag": "needs_review"
+  }
+]
