@@ -13,3 +13,7 @@ logs/
 pdf-reports/reports/
 pdf-reports/report.db
 pdf-reports/__pycache__/
+
+# BE-06 background job
+background-job/outbox/
+background-job/__pycache__/
