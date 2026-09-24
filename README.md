@@ -1,6 +1,6 @@
 # Tasks API
 
-A tiny CRUD API for managing a to-do list. FlyRank Backend Engineering Internship — Assignment A1 (in-memory), Assignment A2 (SQLite), Assignment A3/BE-04 (containerized, Postgres), BE-03/A4 (Supabase Auth — sign up, log in, log out, protected routes), BE-05/A9 (a separate polite scraper — see [`scraper/README.md`](scraper/README.md)), BE-07/A17 (an LLM behind `/enrich` — see below), BE-08/A8 (a separate PDF report generator — see [`pdf-reports/README.md`](pdf-reports/README.md)).
+A tiny CRUD API for managing a to-do list. FlyRank Backend Engineering Internship — Assignment A1 (in-memory), Assignment A2 (SQLite), Assignment A3/BE-04 (containerized, Postgres), BE-03/A4 (Supabase Auth — sign up, log in, log out, protected routes), BE-05/A9 (a separate polite scraper — see [`scraper/README.md`](scraper/README.md)), BE-07/A17 (an LLM behind `/enrich` — see below), BE-08/A8 (a separate PDF report generator — see [`pdf-reports/README.md`](pdf-reports/README.md)), BE-06/A7 (a separate background-job API on Inngest — see [`background-job/README.md`](background-job/README.md)).
 
 ## Setup — environment variables
 
