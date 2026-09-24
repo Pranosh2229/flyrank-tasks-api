@@ -15,9 +15,19 @@ async def say_hello(ctx: inngest.Context) -> str:
     return "Hello from the background!"
 
 
+async def _mark_report_failed(ctx: inngest.Context) -> None:
+    original_event = ctx.event.data["event"]
+    report_id = original_event["data"]["id"]
+    report = reports.get(report_id)
+    if report is not None:
+        report["status"] = "failed"
+
+
 @client.create_function(
     fn_id="make-report",
     trigger=inngest.TriggerEvent(event="report/requested"),
+    retries=2,
+    on_failure=_mark_report_failed,
 )
 async def make_report(ctx: inngest.Context) -> dict:
     report_id = ctx.event.data["id"]
@@ -26,6 +36,9 @@ async def make_report(ctx: inngest.Context) -> dict:
     await ctx.step.sleep("do-the-slow-work", datetime.timedelta(seconds=8))
 
     def build_report() -> dict:
+        if topic == "fail":
+            raise Exception("The report oven is broken!")
+
         result = {"summary": f"Report about {topic}", "word_count": 42}
         report = reports.get(report_id)
         if report is not None:
