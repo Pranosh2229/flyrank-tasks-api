@@ -6,3 +6,5 @@ tasks.db
 ai-version/tasks.db
 *.sqbpro
 .env
+uvicorn.log
+logs/

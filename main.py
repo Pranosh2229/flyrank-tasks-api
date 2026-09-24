@@ -1,7 +1,9 @@
+import os
 from typing import Optional
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
@@ -9,6 +11,7 @@ from supabase_auth.errors import AuthApiError
 
 from get_repository import get_repository
 from supabase_client import supabase, SUPABASE_KEY, SUPABASE_URL
+from llm.schema import EnrichInput, EnrichOutput, STUB_OUTPUT
 
 app = FastAPI(title="Tasks API")
 
@@ -36,6 +39,20 @@ class AuthIn(BaseModel):
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
+
+
+# BE-07 Stage 1: a wrong type, missing field, or over-length value must be a
+# 400 naming the field -- not FastAPI's default 422 -- so a caller can tell
+# immediately what to fix, before any model call is ever made.
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    errors = exc.errors()
+    if errors:
+        field = ".".join(str(p) for p in errors[0]["loc"] if p != "body")
+        message = f"{field}: {errors[0]['msg']}"
+    else:
+        message = "Invalid request"
+    return JSONResponse(status_code=400, content={"error": message})
 
 
 @app.post("/auth/signup", status_code=201)
@@ -159,3 +176,14 @@ def delete_task(task_id: int):
     if not deleted:
         raise HTTPException(status_code=404, detail="Task not found")
     return None
+
+
+# BE-07: POST /enrich -- judge a scraped book record's audience, write an
+# inferred blurb, flag quality concerns. Input validation happens via
+# EnrichInput's Pydantic model before any model call, so a malformed
+# request never spends a call. Stage 1: stub mode only, no model wired yet.
+@app.post("/enrich", response_model=EnrichOutput)
+def enrich(payload: EnrichInput):
+    if os.environ.get("LLM_STUB") == "1":
+        return STUB_OUTPUT
+    raise HTTPException(status_code=501, detail="model call not implemented yet (Stage 2)")
