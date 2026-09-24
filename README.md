@@ -1,6 +1,6 @@
 # Tasks API
 
-A tiny CRUD API for managing a to-do list. FlyRank Backend Engineering Internship — Assignment A1 (in-memory), Assignment A2 (SQLite), Assignment A3/BE-04 (containerized, Postgres), BE-03/A4 (Supabase Auth — sign up, log in, log out, protected routes).
+A tiny CRUD API for managing a to-do list. FlyRank Backend Engineering Internship — Assignment A1 (in-memory), Assignment A2 (SQLite), Assignment A3/BE-04 (containerized, Postgres), BE-03/A4 (Supabase Auth — sign up, log in, log out, protected routes), BE-05/A9 (a separate polite scraper — see [`scraper/README.md`](scraper/README.md)).
 
 ## Setup — environment variables
 
