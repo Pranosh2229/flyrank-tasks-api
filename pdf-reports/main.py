@@ -1,11 +1,16 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 
 from db import get_connection, init_db
 from render import generate_report_pdf
+
+
+class CreateReportIn(BaseModel):
+    force: bool = False
 
 REPORTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
 
@@ -19,11 +24,28 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/reports", status_code=201)
-def create_report():
+@app.post("/reports")
+def create_report(payload: CreateReportIn = CreateReportIn()):
+    today = datetime.now(timezone.utc).date().isoformat()
     conn = get_connection()
+
+    # Idempotency: asking twice on the same day returns the same report
+    # instead of generating a duplicate -- same request twice, one effect.
+    if not payload.force:
+        existing = conn.execute(
+            "SELECT * FROM reports WHERE created_at LIKE ? ORDER BY id DESC LIMIT 1",
+            (f"{today}%",),
+        ).fetchone()
+        if existing is not None:
+            conn.close()
+            return JSONResponse(
+                status_code=200,
+                content={"id": existing["id"], "file": f"/reports/{existing['id']}/file"},
+            )
+
     report_id = conn.execute(
-        "INSERT INTO reports (path, created_at) VALUES ('', ?)", (datetime.utcnow().isoformat(),)
+        "INSERT INTO reports (path, created_at) VALUES ('', ?)",
+        (datetime.now(timezone.utc).isoformat(),),
     ).lastrowid
     conn.commit()
 
@@ -34,7 +56,10 @@ def create_report():
     conn.commit()
     conn.close()
 
-    return {"id": report_id, "file": f"/reports/{report_id}/file"}
+    return JSONResponse(
+        status_code=201,
+        content={"id": report_id, "file": f"/reports/{report_id}/file"},
+    )
 
 
 @app.get("/reports/{report_id}")
