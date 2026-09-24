@@ -8,3 +8,8 @@ ai-version/tasks.db
 .env
 uvicorn.log
 logs/
+
+# BE-08 PDF report generator
+pdf-reports/reports/
+pdf-reports/report.db
+pdf-reports/__pycache__/
