@@ -2,7 +2,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import logging
 import uuid
+
+logging.basicConfig(level=logging.INFO)
 
 import inngest
 from fastapi import FastAPI, HTTPException
@@ -11,11 +14,11 @@ from pydantic import BaseModel
 import inngest.fast_api
 
 from inngest_client import client
-from functions import say_hello, make_report
+from functions import say_hello, make_report, heartbeat
 from store import reports
 
 app = FastAPI(title="Background Job API")
-inngest.fast_api.serve(app, client, [say_hello, make_report], serve_path="/api/inngest")
+inngest.fast_api.serve(app, client, [say_hello, make_report, heartbeat], serve_path="/api/inngest")
 
 
 @app.get("/health")
