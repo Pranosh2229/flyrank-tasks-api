@@ -1,0 +1,9 @@
+[
+  {
+    "url": "https://books.toscrape.com/catalogue/this-book-does-not-exist_9999/index.html",
+    "source_page": "https://books.toscrape.com/catalogue/page-1.html",
+    "stage": "fetch",
+    "status_code": 404,
+    "reason": "client error, not retried"
+  }
+]
