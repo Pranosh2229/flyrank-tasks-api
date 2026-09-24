@@ -17,3 +17,4 @@ pdf-reports/__pycache__/
 # BE-06 background job
 background-job/outbox/
 background-job/__pycache__/
+background-job/*.log
